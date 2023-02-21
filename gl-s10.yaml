@@ -1,13 +1,15 @@
-# Instructions on opening and wiring for flashing on https://blakadder.com/gl-s10
 
 substitutions:
-  name: gl-s10-bt-proxy
-  friendly_name: Bluetooth Proxy
+  name: gl-s10-bt-proxy29a304
+# packages:
+#   esphome.bluetooth-proxy: github://esphome/bluetooth-proxies/gl-s10.yaml@main
+# esphome:
+#   name: ${name}
+#   name_add_mac_suffix: false
 
-esphome:
+  esphome:
   name: ${name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: true
+  name_add_mac_suffix: false
   project:
     name: esphome.bluetooth-proxy
     version: "1.0"
@@ -20,8 +22,8 @@ esp32:
   board: esp32doit-devkit-v1
   framework:
     type: esp-idf
-
-# Configuration fo V2.3 hardware revision
+    
+# Configuration for V2.3 hardware revision
 ethernet:
   type: IP101
   mdc_pin: GPIO23
@@ -29,6 +31,10 @@ ethernet:
   clk_mode: GPIO17_OUT
   phy_addr: 1
   power_pin: GPIO5
+manual_ip: 
+static_ip: !secret stateIP
+gateway: !secret servIP
+subnet: !secret sramaIP 
 
 # Comment the above and use this instead for V1.0 revision of the hardware
 # ethernet:
@@ -39,18 +45,34 @@ ethernet:
 #   phy_addr: 1
 
 api:
+ encryption:
+  key:: !secret HAapi
 logger:
+ level: VERBOSE
 ota:
+
+captive_portal:
+
+substitutions: 
+   device_name: "ESPhome" #Nazwa Twojego urządzenia wyświetlana w Home Assistant
+
+# Pobieranie czasu z HA
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+
+
 
 dashboard_import:
   package_import_url: github://esphome/bluetooth-proxies/gl-s10.yaml@main
 
 esp32_ble_tracker:
   scan_parameters:
-    interval: 1100ms
-    window: 1100ms
-    active: true
-# Bluetooth LED blinks when receiving Bluetooth advertising
+      interval: 1100ms
+      window: 1100ms
+      active: true
+ #Bluetooth LED blinks when receiving Bluetooth advertising
   on_ble_advertise:
     then:
       - output.turn_on: bluetooth_led
@@ -58,7 +80,7 @@ esp32_ble_tracker:
       - output.turn_off: bluetooth_led
 
 bluetooth_proxy:
-  active: true
+   active: true
 
 button:
 - platform: safe_mode
@@ -69,20 +91,32 @@ button:
 # network LED (white one) configured as status led
 status_led:
   pin:
-    number: GPIO32
-    inverted: true
+  number: GPIO32
+  inverted: true
 
 # button on the side labeled RESET
 binary_sensor:
+
   - platform: gpio
     pin:
-      number: GPIO33
-      inverted: true
+    number: GPIO33
+    inverted: true
     name: "Reset Button"
+    
+# bluetooth LED on when connected to Home Assistant
+
+ - platform: status
+   name: "${name} Status"
+   internal: true
+   on_press:
+     - output.turn_on: bluetooth_led
+   on_release:
+     - output.turn_off: bluetooth_led
 
 # output settings for LED's marked Power and Bluetooth
 # power LED use: see code line 12
 # bluetooth LED use: see code line 41
+
 output:
   - platform: gpio
     pin: GPIO14
@@ -94,7 +128,11 @@ output:
     id: bluetooth_led
 
 # since these pins are broken out inside and labeled as I2C pins they're configured here
-i2c:
+  i2c:
   sda: 15
   scl: 13
   scan: true
+  
+# uptime sensor
+- platform: uptime
+  name: ${name}_uptime
